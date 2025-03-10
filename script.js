@@ -1,8 +1,9 @@
 const selectDom = (element) => document.querySelector(element);
 
-let siteName = selectDom("#siteName");
-let createNewBtn = selectDom('#createNew');
-let modalOverlay = selectDom('#modalOverlay');
+const siteName = selectDom("#siteName");
+const createNewBtn = selectDom('#createNew');
+const modalOverlay = selectDom('#modalOverlay');
+const createTaskBtn = selectDom('#createTaskBtn');
 const bgColorList = [
     "bg-blue-500",
     "bg-purple-500",
@@ -19,65 +20,23 @@ const bgColorList = [
     "bg-fuchsia-500",
     "bg-rose-500",
 ];
+const priorityList = ['High', 'Medium', 'Low'];
 
 let boards = [
     {
         boardId: 1,
         boardName: "To Do",
-        tasks: 2,
-        boardItems: [
-            {
-                itemId: 1,
-                title: "Design Homepage",
-                description: "Create the main homepage design with responsive layout.",
-                priority: 3,
-                created_at: "Mar 6, 2025 • 10:45 AM"
-            },
-            {
-                itemId: 1,
-                title: "Research Competitors",
-                description: "Analyze competitor products and identify market gaps.",
-                priority: 2,
-                created_at: "Mar 6, 2025 • 10:45 AM"
-            },
-
-        ]
+        boardItems: []
     },
     {
         boardId: 2,
         boardName: "In Progress",
-        tasks: 2,
-        boardItems: [
-            {
-                itemId: 1,
-                title: "Database Schema",
-                description: "Design database schema for user management and task tracking.",
-                priority: 3,
-                created_at: "Mar 6, 2025 • 10:45 AM"
-            },
-            {
-                itemId: 1,
-                title: "API Integration",
-                description: "Integrate third-party authentication API and payment gateway.",
-                priority: 0,
-                created_at: "Mar 6, 2025 • 10:45 AM"
-            },
-
-        ]
+        boardItems: []
     },
     {
         boardId: 3,
         boardName: "Completed",
-        tasks: 1,
-        boardItems: [
-            {
-                itemId: 1,
-                title: "User Research",
-                description: "Conduct user interviews and analyze feedback for product requirements.",
-                priority: 3,
-                created_at: "Mar 6, 2025 • 10:45 AM"
-            },
-        ]
+        boardItems: []
     },
 ]
 
@@ -112,19 +71,68 @@ const getRandomBgColorClass = () => {
     return bgColorList[Math.floor(Math.random() * bgColorList.length)];
 
 }
+const getFormattedDate = () => {
+    const currentDate = new Date();
+
+    const options = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    };
+
+    const formattedDate = currentDate.toLocaleString('en-US', options);
+
+    const finalFormattedDate = formattedDate.replace(',', ' •');
+
+    return finalFormattedDate;
+}
+
+const addTask = () => {
+    const taskTitle = selectDom('#taskTitle').value;
+    const taskDescription = selectDom('#taskDescription').value;
+    const taskPriority = selectDom('#taskPriority').value;
+    if (taskTitle && taskPriority) {
+        let item = {
+            itemId: boards[0]?.boardItems.length + 1 ?? 0,
+            title: taskTitle,
+            description: taskDescription,
+            priority: taskPriority,
+            created_at: getFormattedDate()
+        }
+
+        // adding data in local storage 
+        boards[0].boardItems.push(item);
+        localStorage.setItem('board', JSON.stringify(boards));
+
+        selectDom('#taskDescription').value ="";
+        selectDom('#taskTitle').value="";
+        selectDom('#taskPriority').value="";
+
+        closeModal();
+        renderBoard();
+    }
+    else {
+        alert('Title & Description Must Be Requied');
+        return false;
+    }
+}
+
 
 const renderBoard = () => {
-    let HtmlUI = boards.map((board) => {
+    let HtmlUI = boards.map((board, index) => {
         return `
-            <div class="bg-white rounded-lg shadow-md p-4 kanban-column">
+            <div class="bg-white rounded-lg shadow-md p-4 kanban-column board" id="board-${board.boardId}" data-id="${index}">
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="text-lg font-bold text-gray-800">${board.boardName}</h2>
                         <span
-                            class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full card-count">${board.tasks}
+                            class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full card-count">${board.boardItems.length}
                             Tasks</span>
                     </div>
-                    ${board.boardItems.map((item) => {
-            return `<div class="kanban-card mb-3 rounded-lg overflow-hidden border border-gray-200">
+                    ${board.boardItems.map((item, itemIndex) => {
+            return `<div class="kanban-card mb-3 rounded-lg overflow-hidden border border-gray-200 cursor-move" draggable="true" data-id="${item.itemId}" data-itemIndex="${itemIndex}" data-boardIndex="${index}">
                         <div class="${getRandomBgColorClass()} text-white p-2 flex justify-between items-center card-header-sine">
                             <div class="flex items-center">
                                 <span class="font-medium">${item.title}</span>
@@ -138,7 +146,7 @@ const renderBoard = () => {
                                         </path>
                                     </svg>
                                 </button>
-                                <button class="card-action-btn text-white hover:text-gray-200 p-1 rounded-full">
+                                <button class="card-action-btn text-white hover:text-gray-200 p-1 rounded-full item-delete cursor-pointer" data-itemIndex="${itemIndex}" data-boardIndex="${index}">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                                         xmlns="http://www.w3.org/2000/svg">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -153,15 +161,16 @@ const renderBoard = () => {
                             <div class="flex justify-between items-center mt-3">
                                 <div class="flex items-center">
                                     <span class="priority-dot bg-red-500" title="${item.priority} Priority"></span>
-                                    <span class="text-xs text-gray-500">${item.priority}</span>
+                                    <span class="text-xs text-gray-500">${priorityList[item.priority]}</span>
                                 </div>
                                 <span class="text-xs text-gray-500 whitespace-nowrap">${item.created_at}</span>
                             </div>
                         </div>
                     </div>`
         }).join('')}
-
-                     <!-- add new Board -->
+                </div>
+            `;
+    }).join('') + `<!-- add new Board -->
                     <div class="bg-white rounded-lg shadow-md p-4 kanban-column">
                         <div class="flex items-center justify-between mb-4">
                             <h2 class="text-lg font-bold text-gray-800">Add New Board</h2>
@@ -177,12 +186,45 @@ const renderBoard = () => {
                                 <div>Create New Board</div>
                             </div>
                         </div>
-                    </div>
-
-                </div>
-            `;
-    }).join('');
+                    </div>`;
     selectDom('#MainContentContainer').innerHTML = HtmlUI;
+
+    document.querySelectorAll('.kanban-card').forEach((card) => {
+        card.addEventListener('dragstart', (e) => {
+            e.target.classList.add('flying');
+        });
+        card.addEventListener('dragend', (e) => {
+            e.target.classList.remove('flying');
+        });
+    })
+
+    document.querySelectorAll('.board').forEach((selectedBoard) => {
+        selectedBoard.addEventListener('dragover', (dragedBoard) => {
+            const flyingElement = selectDom('.flying');
+            selectedItemsId = flyingElement.getAttribute('data-id'); // item index
+            selectedItemsIndex = flyingElement.getAttribute('data-itemIndex'); // items index
+            flyingBoardIndex = flyingElement.getAttribute('data-boardIndex'); // fling board items
+            selectedBoardIndex = dragedBoard.target.getAttribute('data-id'); // board index
+            dragedBoard.target.appendChild(flyingElement);
+            selectedItemsJSONData = boards[flyingBoardIndex].boardItems[selectedItemsIndex];
+            boards[selectedBoardIndex].boardItems.push(selectedItemsJSONData); // setting items in new position in board variable & local storage 
+            // removed selected items 
+            boards[flyingBoardIndex].boardItems.splice(selectedItemsIndex,1);
+            localStorage.setItem('board', JSON.stringify(boards)) // saving in again local storage 
+            renderBoard();
+        })
+    })
+    
+    // delete items 
+    document.querySelectorAll('.item-delete').forEach((deleteBtn)=>{
+        deleteBtn.addEventListener('click',(e)=>{
+            itemIndex = e.currentTarget.getAttribute('data-itemindex');
+            boardIndex = e.currentTarget.getAttribute('data-boardindex');
+            boards[boardIndex]?.boardItems.splice(itemIndex,1);
+            localStorage.setItem('board', JSON.stringify(boards)) // saving in again local storage 
+            renderBoard();
+        })
+    })
 }
 
 // setting site name if present in local storage
@@ -192,11 +234,17 @@ window.addEventListener('DOMContentLoaded', () => {
         siteName.textContent = storedName;
         document.title = storedName;
     }
+
+    // checking is board is not in local staorage than set it 
+    if (localStorage.getItem('board')) boards = JSON.parse(localStorage.getItem('board') ?? '[]')
+    else localStorage.setItem('board', JSON.stringify(boards));
+
     renderBoard();
 });
 
 // Event listeners
 siteName.addEventListener('focusout', saveSiteName);
 createNewBtn.addEventListener('click', openModal);
+createTaskBtn.addEventListener('click', addTask);
 
 closeModal();
