@@ -4,6 +4,7 @@ const siteName = selectDom("#siteName");
 const createNewBtn = selectDom('#createNew');
 const modalOverlay = selectDom('#modalOverlay');
 const createTaskBtn = selectDom('#createTaskBtn');
+
 const bgColorList = [
     "bg-blue-500",
     "bg-purple-500",
@@ -107,9 +108,9 @@ const addTask = () => {
         boards[0].boardItems.push(item);
         localStorage.setItem('board', JSON.stringify(boards));
 
-        selectDom('#taskDescription').value ="";
-        selectDom('#taskTitle').value="";
-        selectDom('#taskPriority').value="";
+        selectDom('#taskDescription').value = "";
+        selectDom('#taskTitle').value = "";
+        selectDom('#taskPriority').value = "";
 
         closeModal();
         renderBoard();
@@ -120,16 +121,37 @@ const addTask = () => {
     }
 }
 
+const addNewBoard = () => {
+    const NewBoardObj = {
+        boardId: boards.length + 1,
+        boardName: "Rename Board Here",
+        boardItems: []
+    }
+    boards.push(NewBoardObj);
+    localStorage.setItem('board', JSON.stringify(boards)) // saving in again local storage 
+    renderBoard();
+}
+
 
 const renderBoard = () => {
     let HtmlUI = boards.map((board, index) => {
         return `
             <div class="bg-white rounded-lg shadow-md p-4 kanban-column board" id="board-${board.boardId}" data-id="${index}">
                     <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-lg font-bold text-gray-800">${board.boardName}</h2>
-                        <span
-                            class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full card-count">${board.boardItems.length}
-                            Tasks</span>
+                        <h2 class="text-lg font-bold text-gray-800 board-name" data-boardId="${index}" onClick="this.contentEditable='true';" >${board.boardName}</h2>
+                            <div class="flex gap-2">
+                                <button class="card-action-btn hover:text-gray-600 p-1 rounded-full board-delete cursor-pointer" data-boardIndex="${index}">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                            xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                        </path>
+                                    </svg>
+                                </button>
+                                <span
+                                    class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full card-count">${board.boardItems.length}
+                                Tasks</span>
+                            </div>
                     </div>
                     ${board.boardItems.map((item, itemIndex) => {
             return `<div class="kanban-card mb-3 rounded-lg overflow-hidden border border-gray-200 cursor-move" draggable="true" data-id="${item.itemId}" data-itemIndex="${itemIndex}" data-boardIndex="${index}">
@@ -138,14 +160,14 @@ const renderBoard = () => {
                                 <span class="font-medium">${item.title}</span>
                             </div>
                             <div class="flex space-x-1">
-                                <button class="card-action-btn text-white hover:text-gray-200 p-1 rounded-full">
+                               <!-- <button class="card-action-btn text-white hover:text-gray-200 p-1 rounded-full">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                                         xmlns="http://www.w3.org/2000/svg">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z">
                                         </path>
                                     </svg>
-                                </button>
+                                </button> -->
                                 <button class="card-action-btn text-white hover:text-gray-200 p-1 rounded-full item-delete cursor-pointer" data-itemIndex="${itemIndex}" data-boardIndex="${index}">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                                         xmlns="http://www.w3.org/2000/svg">
@@ -178,7 +200,7 @@ const renderBoard = () => {
 
 
                         <div class="kanban-card mb-3 rounded-lg overflow-hidden border border-gray-200">
-                            <div class="add-new-card flex flex-col justify-center items-center cursor-pointer">
+                            <div class="add-new-card flex flex-col justify-center items-center cursor-pointer" id="addNewBoard">
                                 <div class="text-3xl">
                                     +
                                     </svg>
@@ -209,18 +231,41 @@ const renderBoard = () => {
             selectedItemsJSONData = boards[flyingBoardIndex].boardItems[selectedItemsIndex];
             boards[selectedBoardIndex].boardItems.push(selectedItemsJSONData); // setting items in new position in board variable & local storage 
             // removed selected items 
-            boards[flyingBoardIndex].boardItems.splice(selectedItemsIndex,1);
+            boards[flyingBoardIndex].boardItems.splice(selectedItemsIndex, 1);
             localStorage.setItem('board', JSON.stringify(boards)) // saving in again local storage 
             renderBoard();
         })
     })
-    
+
     // delete items 
-    document.querySelectorAll('.item-delete').forEach((deleteBtn)=>{
-        deleteBtn.addEventListener('click',(e)=>{
+    document.querySelectorAll('.item-delete').forEach((deleteBtn) => {
+        deleteBtn.addEventListener('click', (e) => {
             itemIndex = e.currentTarget.getAttribute('data-itemindex');
             boardIndex = e.currentTarget.getAttribute('data-boardindex');
-            boards[boardIndex]?.boardItems.splice(itemIndex,1);
+            boards[boardIndex]?.boardItems.splice(itemIndex, 1);
+            localStorage.setItem('board', JSON.stringify(boards)) // saving in again local storage 
+            renderBoard();
+        })
+    })
+    // calling create new board 
+    selectDom('#addNewBoard').addEventListener('click', addNewBoard);
+
+    // saveing board name 
+    document.querySelectorAll('.board-name').forEach((element) => {
+        element.addEventListener('focusout', (e) => {
+            e.currentTarget.contentEditable = 'false';
+            let textValue = e.currentTarget.textContent;
+            const boardId = e.currentTarget.getAttribute('data-boardId');
+            boards[boardId].boardName = textValue;
+            localStorage.setItem('board', JSON.stringify(boards)) // saving in again local storage 
+        })
+    })
+
+    // delete Board
+    document.querySelectorAll('.board-delete').forEach((element)=>{
+        element.addEventListener('click',(e)=>{
+            let boardindex = e.currentTarget.getAttribute('data-boardIndex');
+            boards.splice(boardindex,1);
             localStorage.setItem('board', JSON.stringify(boards)) // saving in again local storage 
             renderBoard();
         })
